@@ -3,17 +3,28 @@ using System.Collections.Generic;
 using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
+using PepperDash.Essentials.Core.DeviceInfo;
 using PepperDash.Essentials.Devices.Common.DSP;
 
 namespace PDT.Plugins.Shure.DSP
 {
-    public class ShureDspDevice : DspBase, IHasDspPresets, ICommunicationMonitor, IOnline, IHasFeedback
+    public class ShureDspDevice : DspBase, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
     {
+        private readonly CCriticalSection _deviceInfoLock = new CCriticalSection();
+
         private readonly ShureDspProps _props;
         private readonly IBasicCommunication _comms;
         private readonly CTimer _poll;
 
         private readonly IDictionary<ShureP300ChannelEnum, ShureDspFader> _controlPoints;
+
+        private DeviceInfo _currentDeviceInfo = new DeviceInfo
+        {
+            FirmwareVersion = "",
+            HostName = "",
+            IpAddress = "",
+            SerialNumber = ""
+        };
 
         public static int ScaleValue(int value, int originalMin, int originalMax, int newMin, int newMax)
         {
@@ -137,6 +148,9 @@ namespace PDT.Plugins.Shure.DSP
 
             const string muteIdentifier = "AUDIO_MUTE";
             const string levelIdentifier = "AUDIO_GAIN";
+            const string firmwareIdentifier = "FW_VER";
+            const string serialNumberIdentifier = "SERIAL_NUM";
+            const string ipIdentifier = "IP_ADDR_NET_AUDIO_PRIMARY";
 
             try
             {
@@ -147,6 +161,18 @@ namespace PDT.Plugins.Shure.DSP
                 else if (response.Contains(levelIdentifier))
                 {
                     ParseLevelResponse(response);
+                }
+                else if (response.Contains(firmwareIdentifier))
+                {
+                    ParseFirmwareResponse(response);
+                }
+                else if (response.Contains(serialNumberIdentifier))
+                {
+                    ParseSerialNumberResponse(response);
+                }
+                else if (response.Contains(ipIdentifier))
+                {
+                    ParseIpAddressResponse(response);
                 }
                 else
                 {
@@ -203,6 +229,81 @@ namespace PDT.Plugins.Shure.DSP
             }
         }
 
+        private void ParseFirmwareResponse(string response)
+        {
+            // < REP FW_VER {yyyyyyyyyyyyyyyyyy} >
+
+            var shouldUpdate = false;
+
+            try
+            {
+                var parts = response.Split(new[] {' '});
+                var firmware = parts[3];
+                var oldDeviceInfo = _currentDeviceInfo;
+                _currentDeviceInfo = oldDeviceInfo.WithFirmware(firmware);
+                shouldUpdate = !ReferenceEquals(oldDeviceInfo, _currentDeviceInfo);
+            }
+            catch (Exception ex)
+            {
+                Debug.Console(0, this, "Caught an exception parsing FW {0}", ex);
+            }
+
+            if (!shouldUpdate)
+                return;
+
+            OnDeviceInfoChanged(_currentDeviceInfo);
+        }
+
+        private void ParseSerialNumberResponse(string response)
+        {
+            // < REP SERIAL_NUM {yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy} >
+
+            var shouldUpdate = false;
+
+            try
+            {
+                var parts = response.Split(new[] { ' ' });
+                var serialNumber = parts[3];
+                var oldDeviceInfo = _currentDeviceInfo;
+                _currentDeviceInfo = oldDeviceInfo.WithSerialNumber(serialNumber);
+                shouldUpdate = !ReferenceEquals(oldDeviceInfo, _currentDeviceInfo);
+            }
+            catch (Exception ex)
+            {
+                Debug.Console(0, this, "Caught an exception parsing SN {0}", ex);
+            }
+
+            if (!shouldUpdate)
+                return;
+
+            OnDeviceInfoChanged(_currentDeviceInfo);
+        }
+
+        private void ParseIpAddressResponse(string response)
+        {
+            // < REP IP_ADDR_NET_AUDIO_PRIMARY {yyyyyyyyyyyyyyy} >
+
+            var shouldUpdate = false;
+
+            try
+            {
+                var parts = response.Split(new[] { ' ' });
+                var ipAddress = parts[3];
+                var oldDeviceInfo = _currentDeviceInfo;
+                _currentDeviceInfo = oldDeviceInfo.WithIpAddress(ipAddress);
+                shouldUpdate = !ReferenceEquals(oldDeviceInfo, _currentDeviceInfo);
+            }
+            catch (Exception ex)
+            {
+                Debug.Console(0, this, "Caught an exception parsing IP {0}", ex);
+            }
+
+            if (!shouldUpdate)
+                return;
+
+            OnDeviceInfoChanged(_currentDeviceInfo);
+        }
+
         public void SendText(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -229,6 +330,30 @@ namespace PDT.Plugins.Shure.DSP
         }
 
         public FeedbackCollection<Feedback> Feedbacks { get; private set; }
+
+        public void UpdateDeviceInfo()
+        {
+            SendText("< GET SERIAL_NUM >");
+            SendText("< GET FW_VER >");
+            SendText("< GET IP_ADDR_NET_AUDIO_PRIMARY >");
+        }
+
+        public DeviceInfo DeviceInfo
+        {
+            get
+            {
+                return _currentDeviceInfo;
+            }
+        }
+
+        public event DeviceInfoChangeHandler DeviceInfoChanged;
+
+        private void OnDeviceInfoChanged(DeviceInfo deviceInfo)
+        {
+            var handler = DeviceInfoChanged;
+            if (handler != null)
+                handler(this, new DeviceInfoEventArgs { DeviceInfo = deviceInfo });
+        }
     }
 }
 
