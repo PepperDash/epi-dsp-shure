@@ -1,11 +1,10 @@
 using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
-using PepperDash.Essentials.Devices.Common.DSP;
 
 namespace PDT.Plugins.Shure.DSP
 {
-    public class ShureDspFader : DspControlPoint, IKeyed, IBasicVolumeWithFeedback
+    public class ShureDspFader : IKeyed, IBasicVolumeWithFeedback
     {
         private readonly ShureDspDevice _parent;
         private readonly ShureP300ChannelEnum _channel;
@@ -15,7 +14,7 @@ namespace PDT.Plugins.Shure.DSP
 
         public bool VolumeIsMuted
         {
-            get { return _volumeIsMuted; }
+            get => _volumeIsMuted;
             set
             {
                 _volumeIsMuted = value;
@@ -25,7 +24,7 @@ namespace PDT.Plugins.Shure.DSP
 
         public int CurrentLevel
         {
-            get { return _currentLevel; }
+            get => _currentLevel;
             set
             {
                 _currentLevel = value;
@@ -69,8 +68,8 @@ namespace PDT.Plugins.Shure.DSP
             CrestronInvoke.BeginInvoke(_ =>
             {
                 // < SET xx AUDIO_GAIN_HI_RES INC nn >
-                const string commandTempate = "< SET {0} AUDIO_GAIN_HI_RES INC 100 >";
-                var command = string.Format(commandTempate, _channel);
+                const string commandTemplate = "< SET {0} AUDIO_GAIN_HI_RES INC 100 >";
+                var command = string.Format(commandTemplate, _channel);
 
                 using (var wh = new CEvent(true, false))
                 {
@@ -104,8 +103,8 @@ namespace PDT.Plugins.Shure.DSP
             CrestronInvoke.BeginInvoke(_ =>
             {
                 // < SET xx AUDIO_GAIN_HI_RES INC nn >
-                const string commandTempate = "< SET {0} AUDIO_GAIN_HI_RES DEC 100 >";
-                var command = string.Format(commandTempate, _channel);
+                const string commandTemplate = "< SET {0} AUDIO_GAIN_HI_RES DEC 100 >";
+                var command = string.Format(commandTemplate, _channel);
 
                 using (var wh = new CEvent(true, false))
                 {
@@ -121,39 +120,39 @@ namespace PDT.Plugins.Shure.DSP
         public void MuteToggle()
         {
             // < SET xx AUDIO_MUTE TOGGLE >
-            const string commandTempate = "< SET {0} AUDIO_MUTE TOGGLE >";
-            var command = string.Format(commandTempate, (int) _channel);
+            const string commandTemplate = "< SET {0} AUDIO_MUTE TOGGLE >";
+            var command = string.Format(commandTemplate, (int) _channel);
             _parent.SendText(command);
         }
 
         public void MuteOn()
         {
             // < SET xx AUDIO_MUTE ON >
-            const string commandTempate = "< SET {0} AUDIO_MUTE ON >";
-            var command = string.Format(commandTempate, (int)_channel);
+            const string commandTemplate = "< SET {0} AUDIO_MUTE ON >";
+            var command = string.Format(commandTemplate, (int)_channel);
             _parent.SendText(command);
         }
 
         public void MuteOff()
         {
             // < SET xx AUDIO_MUTE OFF >
-            const string commandTempate = "< SET {0} AUDIO_MUTE OFF >";
-            var command = string.Format(commandTempate, (int)_channel);
+            const string commandTemplate = "< SET {0} AUDIO_MUTE OFF >";
+            var command = string.Format(commandTemplate, (int)_channel);
             _parent.SendText(command);
         }
 
         public void SetVolume(ushort level)
         {
             // < SET xx AUDIO_GAIN_HI_RES yyyy >
-            const string commandTempate = "< SET {0} AUDIO_GAIN_HI_RES {1} >";
+            const string commandTemplate = "< SET {0} AUDIO_GAIN_HI_RES {1} >";
 
             var mappedLevel = CrestronEnvironment.ScaleWithLimits(level, ushort.MaxValue, 0, 1400, 0);
-            var command = string.Format(commandTempate, (int)_channel, mappedLevel);
+            var command = string.Format(commandTemplate, (int)_channel, mappedLevel);
             _parent.SendText(command);
         }
 
-        public BoolFeedback MuteFeedback { get; private set; }
-        public IntFeedback VolumeLevelFeedback { get; private set; }
-        public string Key { get; private set; }
+        public BoolFeedback MuteFeedback { get; }
+        public IntFeedback VolumeLevelFeedback { get; }
+        public string Key { get; }
     }
 }

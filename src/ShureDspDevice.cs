@@ -5,11 +5,11 @@ using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.DeviceInfo;
-using PepperDash.Essentials.Devices.Common.DSP;
+using PepperDash.Essentials.Core.DeviceTypeInterfaces;
 
 namespace PDT.Plugins.Shure.DSP
 {
-    public class ShureDspDevice : DspBase, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
+    public class ShureDspDevice : EssentialsDevice, ILevelControls, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
     {
         private readonly ShureDspProps _props;
         private readonly IBasicCommunication _comms;
@@ -57,6 +57,8 @@ namespace PDT.Plugins.Shure.DSP
                 {ShureP300ChannelEnum.DanteInput09, new ShureDspFader(this, ShureP300ChannelEnum.DanteInput09)},
                 {ShureP300ChannelEnum.DanteInput10, new ShureDspFader(this, ShureP300ChannelEnum.DanteInput10)},
                 {ShureP300ChannelEnum.UsbInput, new ShureDspFader(this, ShureP300ChannelEnum.UsbInput)},
+                {ShureP300ChannelEnum.AnalogInput11, new ShureDspFader(this, ShureP300ChannelEnum.AnalogInput11)},
+                {ShureP300ChannelEnum.AnalogInput12, new ShureDspFader(this, ShureP300ChannelEnum.AnalogInput12)},
                 {ShureP300ChannelEnum.MobileInput, new ShureDspFader(this, ShureP300ChannelEnum.MobileInput)},
                 {ShureP300ChannelEnum.DanteOutput1, new ShureDspFader(this, ShureP300ChannelEnum.DanteOutput1)},
                 {ShureP300ChannelEnum.DanteOutput2, new ShureDspFader(this, ShureP300ChannelEnum.DanteOutput2)},
@@ -125,8 +127,8 @@ namespace PDT.Plugins.Shure.DSP
                     Debug.Console(1, this, "Mute update:{0}|{1}", fader.Key, args.BoolValue);
             }
 
-            CrestronConsole.AddNewConsoleCommand(RecallPreset, Key + "PRESET", "Recalls a preset by string", ConsoleAccessLevelEnum.AccessAdministrator);
-            CrestronConsole.AddNewConsoleCommand(TestVolume, Key + "VOLUME", "Recalls a preset by string", ConsoleAccessLevelEnum.AccessAdministrator);
+            // CrestronConsole.AddNewConsoleCommand(RecallPreset, Key + "PRESET", "Recalls a preset by string", ConsoleAccessLevelEnum.AccessAdministrator);
+            // CrestronConsole.AddNewConsoleCommand(TestVolume, Key + "VOLUME", "Recalls a preset by string", ConsoleAccessLevelEnum.AccessAdministrator);
         }
 
         public override void Initialize()
@@ -195,8 +197,7 @@ namespace PDT.Plugins.Shure.DSP
             var channelId = Convert.ToInt32(parts[2]);
             var channelEnum = (ShureP300ChannelEnum)channelId;
 
-            ShureDspFader fader;
-            if (_controlPoints.TryGetValue(channelEnum, out fader))
+            if (_controlPoints.TryGetValue(channelEnum, out var fader))
             {
                 fader.VolumeIsMuted = response.Contains("ON");
                 Debug.Console(2, this, "Parse mute response channel enum:{0} value:{1}", channelEnum, fader.VolumeIsMuted);
@@ -214,8 +215,7 @@ namespace PDT.Plugins.Shure.DSP
             var channelId = Convert.ToInt32(parts[2]);
             var channelEnum = (ShureP300ChannelEnum)channelId;
 
-            ShureDspFader fader;
-            if (_controlPoints.TryGetValue(channelEnum, out fader))
+            if (_controlPoints.TryGetValue(channelEnum, out var fader))
             {
                 var volume = Convert.ToInt16(parts[4]);
                 Debug.Console(2, this, "Parse level response channel:{0} volume:{1}", channelId, volume);
@@ -316,8 +316,8 @@ namespace PDT.Plugins.Shure.DSP
         public void RecallPreset(IDspPreset preset)
         {
             // < SET PRESET nn >
-            const string commandTempate = "< SET {0} >";
-            var command = string.Format(commandTempate, preset.Name);
+            const string commandTemplate = "< SET {0} >";
+            var command = string.Format(commandTemplate, preset.Name);
             SendText(command);
         }
 
@@ -346,15 +346,12 @@ namespace PDT.Plugins.Shure.DSP
             }
         }
 
-        public List<IDspPreset> Presets { get; private set; }
-        public StatusMonitorBase CommunicationMonitor { get; private set; }
+        public List<IDspPreset> Presets { get; }
+        public StatusMonitorBase CommunicationMonitor { get; }
 
-        public BoolFeedback IsOnline
-        {
-             get { return CommunicationMonitor.IsOnlineFeedback; }
-        }
+        public BoolFeedback IsOnline => CommunicationMonitor.IsOnlineFeedback;
 
-        public FeedbackCollection<Feedback> Feedbacks { get; private set; }
+        public FeedbackCollection<Feedback> Feedbacks { get; }
 
         public void UpdateDeviceInfo()
         {
@@ -363,13 +360,7 @@ namespace PDT.Plugins.Shure.DSP
             SendText("< GET IP_ADDR_NET_AUDIO_PRIMARY >");
         }
 
-        public DeviceInfo DeviceInfo
-        {
-            get
-            {
-                return _currentDeviceInfo;
-            }
-        }
+        public DeviceInfo DeviceInfo => _currentDeviceInfo;
 
         public event DeviceInfoChangeHandler DeviceInfoChanged;
 
@@ -379,6 +370,9 @@ namespace PDT.Plugins.Shure.DSP
             if (handler != null)
                 handler(this, new DeviceInfoEventArgs { DeviceInfo = deviceInfo });
         }
+
+        public Dictionary<string, IBasicVolumeWithFeedback> LevelControlPoints =>
+            _controlPoints.ToDictionary(x => x.Key.ToString(), x => (IBasicVolumeWithFeedback)x.Value);
     }
 }
 

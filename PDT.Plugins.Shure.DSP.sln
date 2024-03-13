@@ -1,7 +1,9 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDT.Plugins.Shure.DSP", "src\PDT.Plugins.Shure.DSP.csproj", "{818BB65D-DDB2-4E9F-A0C4-6F6FD48E9195}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34408.163
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDT.Plugins.Shure.DSP", "src/PDT.Plugins.Shure.DSP.csproj", "{76A7EA44-67EA-415A-9915-8A6B5BE49A24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,12 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{818BB65D-DDB2-4E9F-A0C4-6F6FD48E9195}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{818BB65D-DDB2-4E9F-A0C4-6F6FD48E9195}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{818BB65D-DDB2-4E9F-A0C4-6F6FD48E9195}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{818BB65D-DDB2-4E9F-A0C4-6F6FD48E9195}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76A7EA44-67EA-415A-9915-8A6B5BE49A24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76A7EA44-67EA-415A-9915-8A6B5BE49A24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76A7EA44-67EA-415A-9915-8A6B5BE49A24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76A7EA44-67EA-415A-9915-8A6B5BE49A24}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CFE64753-760D-412E-8585-17B656F85E67}
 	EndGlobalSection
 EndGlobal
