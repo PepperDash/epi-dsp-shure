@@ -8,4 +8,8 @@
     <PackageReference Include="PepperDashEssentials" Version="2.0.0-alpha-2405" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<ProjectType>ProgramLibrary</ProjectType>
+	</PropertyGroup>
+
 </Project>
