@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
@@ -10,8 +11,6 @@ namespace PDT.Plugins.Shure.DSP
 {
     public class ShureDspDevice : DspBase, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
     {
-        private readonly CCriticalSection _deviceInfoLock = new CCriticalSection();
-
         private readonly ShureDspProps _props;
         private readonly IBasicCommunication _comms;
         private readonly CTimer _poll;
@@ -26,17 +25,18 @@ namespace PDT.Plugins.Shure.DSP
             SerialNumber = ""
         };
 
-        public static int ScaleValue(int value, int originalMin, int originalMax, int newMin, int newMax)
+        public static int MapVolume(short level)
         {
-            var originalRatio = (value - originalMin) / (originalMax - originalMin);
-            var newValue = newMin + (originalRatio * (newMax - newMin));
+            const float inputMin = 0;
+            const float inputMax = 1400;
 
-            return newValue;
-        }
+            const float outputMin = 0;
+            const float outputMax = ushort.MaxValue;
 
-        public static int ScaleToInt(int value, int originalMin, int originalMax)
-        {
-            return ScaleValue(value, originalMin, originalMax, int.MinValue, int.MaxValue);
+            var normalized = (level - inputMin) / (inputMax - inputMin);
+            var mappedValue = (int)(normalized * (outputMax - outputMin) + outputMin);
+
+            return mappedValue;
         }
 
         public ShureDspDevice(string key, string name, ShureDspProps props, IBasicCommunication comms) : base(key, name)
@@ -97,7 +97,7 @@ namespace PDT.Plugins.Shure.DSP
                 if (args.BoolValue)
                 {
                     SendText("< GET 00 ALL>");
-                    _poll.Reset(5000, 5000);
+                    _poll.Reset(10000, 10000);
                 }
                 else
                 {
@@ -117,6 +117,7 @@ namespace PDT.Plugins.Shure.DSP
                 Feedbacks.Add(shureDspFader.VolumeLevelFeedback);
 
                 var fader = shureDspFader;
+
                 fader.VolumeLevelFeedback.OutputChange += (sender, args) =>
                     Debug.Console(1, this, "Volume update:{0}|{1}", fader.Key, args.IntValue);
 
@@ -124,6 +125,8 @@ namespace PDT.Plugins.Shure.DSP
                     Debug.Console(1, this, "Mute update:{0}|{1}", fader.Key, args.BoolValue);
             }
 
+            CrestronConsole.AddNewConsoleCommand(RecallPreset, Key + "PRESET", "Recalls a preset by string", ConsoleAccessLevelEnum.AccessAdministrator);
+            CrestronConsole.AddNewConsoleCommand(TestVolume, Key + "VOLUME", "Recalls a preset by string", ConsoleAccessLevelEnum.AccessAdministrator);
         }
 
         public override void Initialize()
@@ -181,7 +184,7 @@ namespace PDT.Plugins.Shure.DSP
             }
             catch (Exception ex)
             {
-                Debug.Console(1, this, "Caught an exception parsing:{0}{1}", response, ex);
+                Debug.Console(0, this, "Caught an exception parsing:{0}{1}", response, ex);
             }
         }
 
@@ -190,18 +193,17 @@ namespace PDT.Plugins.Shure.DSP
             // < REP xx AUDIO_MUTE ON >
             var parts = response.Split(new[] {' '});
             var channelId = Convert.ToInt32(parts[2]);
-            Debug.Console(1, this, "Parse mute response channel:{0}", channelId);
             var channelEnum = (ShureP300ChannelEnum)channelId;
-            Debug.Console(1, this, "Parse mute response channel enum:{0}", channelEnum);
 
             ShureDspFader fader;
             if (_controlPoints.TryGetValue(channelEnum, out fader))
             {
                 fader.VolumeIsMuted = response.Contains("ON");
+                Debug.Console(2, this, "Parse mute response channel enum:{0} value:{1}", channelEnum, fader.VolumeIsMuted);
             }
             else
             {
-                Debug.Console(1, this, "Could not find fader with enum:{0}", channelEnum);
+                Debug.Console(2, this, "Could not find fader with enum:{0}", channelEnum);
             }
         }
 
@@ -210,22 +212,20 @@ namespace PDT.Plugins.Shure.DSP
             // < REP xx AUDIO_GAIN_HI_RES yyyy >
             var parts = response.Split(new[] { ' ' });
             var channelId = Convert.ToInt32(parts[2]);
-            Debug.Console(1, this, "Parse level response channel:{0}", channelId);
             var channelEnum = (ShureP300ChannelEnum)channelId;
-            Debug.Console(1, this, "Parse level response channel enum:{0}", channelEnum);
 
             ShureDspFader fader;
             if (_controlPoints.TryGetValue(channelEnum, out fader))
             {
-                var volume = Convert.ToInt32(parts[4]);
-                Debug.Console(1, this, "Parse level response channel:{0} volume:{1}", channelId, volume);
-                var scaledVolume = ScaleToInt(volume, 0, 1400);
-                Debug.Console(1, this, "Parse level response channel:{0} scaled volume:{1}", channelId, scaledVolume);
+                var volume = Convert.ToInt16(parts[4]);
+                Debug.Console(2, this, "Parse level response channel:{0} volume:{1}", channelId, volume);
+                var scaledVolume = MapVolume(volume);
+                Debug.Console(2, this, "Parse level response channel:{0} scaled volume:{1}", channelId, scaledVolume);
                 fader.CurrentLevel = scaledVolume;
             }
             else
             {
-                Debug.Console(1, this, "Could not find fader with enum:{0}", channelEnum);
+                Debug.Console(2, this, "Could not find fader with enum:{0}", channelEnum);
             }
         }
 
@@ -319,6 +319,31 @@ namespace PDT.Plugins.Shure.DSP
             const string commandTempate = "< SET {0} >";
             var command = string.Format(commandTempate, preset.Name);
             SendText(command);
+        }
+
+        public void RecallPreset(string presetName)
+        {
+            var preset = Presets.FirstOrDefault(p => p.Name.Equals(presetName, StringComparison.OrdinalIgnoreCase));
+            if (preset == null)
+            {
+                Debug.Console(0, this, "Couldn't find preset name:{0}", presetName);
+            }
+
+            RecallPreset(preset);
+        }
+
+        public void TestVolume(string volume)
+        {
+            try
+            {
+                var testLevel = Convert.ToUInt16(volume);
+                var fader = _controlPoints[ShureP300ChannelEnum.AnalogOutput1];
+                fader.SetVolume(testLevel);
+            }
+            catch (Exception ex)
+            {
+                Debug.Console(0, this, "Caught an exception testing volume:{0}", ex);
+            }
         }
 
         public List<IDspPreset> Presets { get; private set; }
