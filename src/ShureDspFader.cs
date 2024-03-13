@@ -145,7 +145,11 @@ namespace PDT.Plugins.Shure.DSP
         public void SetVolume(ushort level)
         {
             // < SET xx AUDIO_GAIN_HI_RES yyyy >
-            throw new System.NotImplementedException();
+            const string commandTempate = "< SET {0} AUDIO_GAIN_HI_RES {1} >";
+
+            var mappedLevel = CrestronEnvironment.ScaleWithLimits(level, ushort.MaxValue, 0, 1400, 0);
+            var command = string.Format(commandTempate, (int)_channel, mappedLevel);
+            _parent.SendText(command);
         }
 
         public BoolFeedback MuteFeedback { get; private set; }
