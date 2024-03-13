@@ -107,7 +107,7 @@ jobs:
           bodyFile: ./CHANGELOG.md
       - name: Setup Nuget
         run: | 
-          nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash-services/index.json -username pepperdash -password ${{ secrets.GITHUB_TOKEN }}
+          nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash/index.json -username pepperdash -password ${{ secrets.GITHUB_TOKEN }}
           nuget setApiKey ${{ secrets.GITHUB_TOKEN }} -Source github          
       - name: Publish to Github Nuget
         run: nuget push .\output\*.nupkg -Source github
