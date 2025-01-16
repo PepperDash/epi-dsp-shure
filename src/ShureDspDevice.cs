@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using Crestron.SimplSharp;
+using Crestron.SimplSharpPro.DeviceSupport;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
+using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Essentials.Core.DeviceInfo;
 using PepperDash.Essentials.Devices.Common.DSP;
 
 namespace PDT.Plugins.Shure.DSP
 {
-    public class ShureDspDevice : DspBase, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
+    public class ShureDspDevice : EssentialsBridgeableDevice, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
     {
         private readonly ShureDspProps _props;
         private readonly IBasicCommunication _comms;
         private readonly CTimer _poll;
-
         private readonly IDictionary<ShureP300ChannelEnum, ShureDspFader> _controlPoints;
 
         private DeviceInfo _currentDeviceInfo = new DeviceInfo
@@ -105,7 +106,7 @@ namespace PDT.Plugins.Shure.DSP
                 }
             };
 
-            Feedbacks = new FeedbackCollection<Feedback>
+            Feedbacks = new FeedbackCollection<PepperDash.Essentials.Core.Feedback>
             {
                 IsOnline
             };
@@ -134,6 +135,49 @@ namespace PDT.Plugins.Shure.DSP
             _comms.Connect();
             CommunicationMonitor.Start();
         }
+
+        #region Overrides of LinkToApi
+
+        /// <summary>
+        /// Links the plugin device to the EISC bridge
+        /// </summary>
+        /// <param name="trilist"></param>
+        /// <param name="joinStart"></param>
+        /// <param name="joinMapKey"></param>
+        /// <param name="bridge"></param>
+        public override void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
+        {
+            var joinMap = new ShureDspBridgeJoinMap(joinStart);
+
+            // This adds the join map to the collection on the bridge
+            if (bridge != null)
+            {
+                bridge.AddJoinMap(Key, joinMap);
+            }
+
+            var customJoins = JoinMapHelper.TryGetJoinMapAdvancedForDevice(joinMapKey);
+
+            if (customJoins != null)
+            {
+                joinMap.SetCustomJoinData(customJoins);
+            }
+
+            Debug.Console(1, this, "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
+            Debug.Console(1, this, "Linking to Bridge Type {0}", GetType().Name);
+
+            // links to bridge
+            trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
+            if(IsOnline != null) IsOnline.LinkInputSig(trilist.BooleanInput[joinMap.IsOnline.JoinNumber]);          
+
+            trilist.OnlineStatusChange += (o, a) =>
+            {
+                if (!a.DeviceOnLine) return;
+                trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
+                //UpdateFeedbacks();
+            };
+        }
+
+        #endregion
 
         private void GatherOnLineReceived(object sender, GenericCommMethodReceiveTextArgs genericCommMethodReceiveTextArgs)
         {
@@ -354,7 +398,7 @@ namespace PDT.Plugins.Shure.DSP
              get { return CommunicationMonitor.IsOnlineFeedback; }
         }
 
-        public FeedbackCollection<Feedback> Feedbacks { get; private set; }
+        public FeedbackCollection<PepperDash.Essentials.Core.Feedback> Feedbacks { get; private set; }
 
         public void UpdateDeviceInfo()
         {

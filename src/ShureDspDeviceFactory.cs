@@ -10,6 +10,7 @@ namespace PDT.Plugins.Shure.DSP
     {
         public ShureDspDeviceFactory ()
         {
+            MinimumEssentialsFrameworkVersion = "1.16.0";
             TypeNames = new List<string>
             {
                 "shurep300"
