@@ -62,3 +62,15 @@ dsp-1-UsbInput
 dsp-1-UsbOutput
 
 ```
+
+## Join Map
+
+### Digitals
+| Join Number | Join Span | Description                   | Type    | Capabilities |
+| ----------- | --------- | ----------------------------- | ------- | ------------ |
+| 1           | 1         | Is Online                     | Digital | ToSIMPL      |
+
+### Serials
+| Join Number | Join Span | Description                   | Type   | Capabilities |
+| ----------- | --------- | ----------------------------- | ------ | ------------ |
+| 1           | 1         | Device Name                   | Serial | ToSIMPL      |
