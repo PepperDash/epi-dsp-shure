@@ -11,7 +11,7 @@ using PepperDash.Essentials.Devices.Common.DSP;
 
 namespace PDT.Plugins.Shure.DSP
 {
-    public class ShureDspDevice : EssentialsBridgeableDevice, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback
+    public class ShureDspDevice : DspBase, IHasDspPresets, ICommunicationMonitor, IDeviceInfoProvider, IOnline, IHasFeedback, IBridgeAdvanced
     {
         private readonly ShureDspProps _props;
         private readonly IBasicCommunication _comms;
@@ -136,7 +136,7 @@ namespace PDT.Plugins.Shure.DSP
             CommunicationMonitor.Start();
         }
 
-        #region Overrides of LinkToApi
+        #region LinkToApi
 
         /// <summary>
         /// Links the plugin device to the EISC bridge
@@ -145,7 +145,7 @@ namespace PDT.Plugins.Shure.DSP
         /// <param name="joinStart"></param>
         /// <param name="joinMapKey"></param>
         /// <param name="bridge"></param>
-        public override void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
+        public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
         {
             var joinMap = new ShureDspBridgeJoinMap(joinStart);
 
