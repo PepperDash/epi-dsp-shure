@@ -136,6 +136,11 @@ namespace PDT.Plugins.Shure.DSP
             CommunicationMonitor.Start();
         }
 
+        private void UpdateFeedbacks()
+        {
+            IsOnline.FireUpdate();
+        }
+
         #region LinkToApi
 
         /// <summary>
@@ -173,10 +178,9 @@ namespace PDT.Plugins.Shure.DSP
             {
                 if (!a.DeviceOnLine) return;
                 trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
-                //UpdateFeedbacks();
+                UpdateFeedbacks();
             };
         }
-
         #endregion
 
         private void GatherOnLineReceived(object sender, GenericCommMethodReceiveTextArgs genericCommMethodReceiveTextArgs)
