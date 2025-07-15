@@ -23,7 +23,7 @@ namespace PDT.Plugins.Shure.DSP
             {
                 var comms = CommFactory.CreateCommForDevice(dc);
                 var props = dc.Properties.ToObject<ShureDspProps>();
-                return new ShureDspDevice(dc.Key, dc.Name, props, comms);
+                return new ShureDspDevice(dc.Key, dc.Name, props, comms, dc);
             }
             catch (Exception ex)
             {

@@ -6,6 +6,7 @@ using Crestron.SimplSharpPro.DeviceSupport;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Bridges;
+using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core.DeviceInfo;
 using PepperDash.Essentials.Devices.Common.DSP;
 
@@ -17,6 +18,10 @@ namespace PDT.Plugins.Shure.DSP
         private readonly IBasicCommunication _comms;
         private readonly CTimer _poll;
         private readonly IDictionary<ShureP300ChannelEnum, ShureDspFader> _controlPoints;
+
+        private bool _ipChanged;
+        public BoolFeedback IpChangeFeedback;
+        private DeviceConfig _dc;
 
         private DeviceInfo _currentDeviceInfo = new DeviceInfo
         {
@@ -40,10 +45,11 @@ namespace PDT.Plugins.Shure.DSP
             return mappedValue;
         }
 
-        public ShureDspDevice(string key, string name, ShureDspProps props, IBasicCommunication comms) : base(key, name)
+        public ShureDspDevice(string key, string name, ShureDspProps props, IBasicCommunication comms, DeviceConfig dc) : base(key, name)
         {
             _props = props;
             _comms = comms;
+            _dc = dc;
 
             _controlPoints = new Dictionary<ShureP300ChannelEnum, ShureDspFader>
             {
@@ -106,9 +112,11 @@ namespace PDT.Plugins.Shure.DSP
                 }
             };
 
+            IpChangeFeedback = new BoolFeedback(() => _ipChanged);
+
             Feedbacks = new FeedbackCollection<PepperDash.Essentials.Core.Feedback>
             {
-                IsOnline
+                IsOnline, IpChangeFeedback
             };
 
             foreach (var shureDspFader in _controlPoints.Values)
@@ -180,8 +188,74 @@ namespace PDT.Plugins.Shure.DSP
                 trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
                 UpdateFeedbacks();
             };
+
+            JoinDataComplete setIpJoinData;
+            if (joinMap.Joins.TryGetValue("SetIpAddress", out setIpJoinData))
+            {
+                trilist.SetStringSigAction(setIpJoinData.JoinNumber, SetIpAddress);
+                Debug.Console(1, this, "Registered SetIpAddress to join {0}", setIpJoinData.JoinNumber);
+
+            }
+
+            JoinDataComplete ipSetFbJoinData;
+            if (joinMap.Joins.TryGetValue("IpAddressSetFeedback", out ipSetFbJoinData))
+            {
+                IpChangeFeedback.OutputChange += (o, a) =>
+                {
+                    if (!a.BoolValue) return;
+                    trilist.PulseBool(ipSetFbJoinData.JoinNumber, 1000);
+                    _ipChanged = false;
+                    IpChangeFeedback.FireUpdate();
+                };
+            }
         }
         #endregion
+
+        protected void CustomSetConfig(DeviceConfig config)
+        {
+            ConfigWriter.UpdateDeviceConfig(_dc);
+
+            Debug.Console(0, this, "IP address changed to {0}. Restart Essentials to take effect.", _dc.Properties["control"]["tcpSshProperties"]["address"].ToString());
+
+            _ipChanged = true;
+            IpChangeFeedback.FireUpdate();
+        }
+
+        private void SetIpAddress(string hostname)
+        {
+            try
+            {
+                Debug.Console(0, this, "SetIpAddress called with hostname: '{0}'", hostname);
+
+                var currentHostname = _dc.Properties["control"]["tcpSshProperties"]["address"].ToString();
+
+                Debug.Console(0, this, "Current hostname is: '{0}'", currentHostname);
+
+                if (hostname.Length <= 2)
+                {
+                    Debug.Console(0, this, "Hostname is too short; ignoring.");
+
+                    return;
+                }
+                if (currentHostname == hostname)
+                {
+                    Debug.Console(0, this, "Hostname is the same as current; no change needed.");
+
+                    return;
+                }
+                //UpdateHostname(hostname);
+
+                _dc.Properties["control"]["tcpSshProperties"]["address"] = hostname;
+                Debug.Console(0, this, "New hostname set to: '{0}'", hostname);
+
+                CustomSetConfig(_dc);
+            }
+            catch (Exception e)
+            {
+
+                Debug.Console(2, this, "Error SetIpAddress: '{0}'", e);
+            }
+        }
 
         private void GatherOnLineReceived(object sender, GenericCommMethodReceiveTextArgs genericCommMethodReceiveTextArgs)
         {

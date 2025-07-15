@@ -46,6 +46,41 @@ namespace PDT.Plugins.Shure.DSP
 
 		#endregion
 
+        private void SetIpChangeJoin(uint joinStart)
+        {
+            var ipSetJoinData = new JoinData
+            {
+                JoinNumber = joinStart + 98,
+                JoinSpan = 1
+            };
+
+            var ipSetJoinMetaData = new JoinMetadata
+            {
+                Description = "Set device IP Address",
+                JoinCapabilities = eJoinCapabilities.FromSIMPL,
+                JoinType = eJoinType.Serial
+            };
+
+            var ipSetJoinDataComplete = new JoinDataComplete(ipSetJoinData, ipSetJoinMetaData);
+            Joins.Add("SetIpAddress", ipSetJoinDataComplete);
+
+            var setFbJoinData = new JoinData
+            {
+                JoinNumber = joinStart + 98,
+                JoinSpan = 1
+            };
+
+            var setFbJoinMetaData = new JoinMetadata
+            {
+                Description = "IP Address Change Feedback",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            };
+
+            var setFbJoinDataComplete = new JoinDataComplete(setFbJoinData, setFbJoinMetaData);
+            Joins.Add("IpAddressSetFeedback", setFbJoinDataComplete);
+        }
+
 		/// <summary>
 		/// Plugin device BridgeJoinMap constructor
 		/// </summary>
@@ -53,6 +88,7 @@ namespace PDT.Plugins.Shure.DSP
         public ShureDspBridgeJoinMap(uint joinStart)
             : base(joinStart, typeof(ShureDspBridgeJoinMap))
 		{
-		}
+            SetIpChangeJoin(joinStart);
+        }
 	}
 }
