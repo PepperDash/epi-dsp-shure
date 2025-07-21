@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>PDT.Plugin.Shure.DSP</id>
+    <readme>docs\README.md</readme>
+    <version>2.0.2</version>
+    <title>PepperDash.Essentials.Plugin.ShureDsp</title>
+    <authors>PepperDash Technology</authors>
+    <owners>pepperdash</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/PepperDash/epi-dsp-shure</projectUrl>
+    <copyright>Copyright 2025</copyright>
+    <description>Essentials-Compliant plugin for Shure DSP</description>
+    <tags>crestron 3series essentials pepperdash pepperdashessentials epi essentials plugin</tags>
+    <repository type="git" url="https://github.com/PepperDash/epi-dsp-shure"/>
+  </metadata>
+    <files>
+      <file src="**" target="lib\net35"/>
+      <file src="**" target="lib\net47"/>
+      <file src="README.md" target="docs\"/>
+    </files>
+</package>
