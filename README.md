@@ -74,3 +74,78 @@ dsp-1-UsbOutput
 | Join Number | Join Span | Description                   | Type   | Capabilities |
 | ----------- | --------- | ----------------------------- | ------ | ------------ |
 | 1           | 1         | Device Name                   | Serial | ToSIMPL      |
+<!-- START Minimum Essentials Framework Versions -->
+### Minimum Essentials Framework Versions
+
+- 1.16.0
+<!-- END Minimum Essentials Framework Versions -->
+<!-- START Supported Types -->
+
+<!-- END Supported Types -->
+<!-- START Join Maps -->
+### Join Maps
+
+#### Digitals
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Is Online |
+
+#### Serials
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Device Name |
+<!-- END Join Maps -->
+<!-- START Interfaces Implemented -->
+### Interfaces Implemented
+
+- IHasDspPresets
+- ICommunicationMonitor
+- IDeviceInfoProvider
+- IOnline
+- IHasFeedback
+- IBridgeAdvanced
+- IDspPreset
+- IKeyed
+- IBasicVolumeWithFeedback
+<!-- END Interfaces Implemented -->
+<!-- START Base Classes -->
+### Base Classes
+
+- DspBase
+- JoinMapBaseAdvanced
+- DspControlPoint
+<!-- END Base Classes -->
+<!-- START Public Methods -->
+### Public Methods
+
+- public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
+- public void ParseResponse(string response)
+- public void SendText(string text)
+- public void RecallPreset(IDspPreset preset)
+- public void RecallPreset(string presetName)
+- public void TestVolume(string volume)
+- public void UpdateDeviceInfo()
+- public void VolumeUp(bool pressRelease)
+- public void VolumeDown(bool pressRelease)
+- public void MuteToggle()
+- public void MuteOn()
+- public void MuteOff()
+- public void SetVolume(ushort level)
+<!-- END Public Methods -->
+<!-- START Bool Feedbacks -->
+### Bool Feedbacks
+
+- IpChangeFeedback
+- IsOnline
+- MuteFeedback
+<!-- END Bool Feedbacks -->
+<!-- START Int Feedbacks -->
+### Int Feedbacks
+
+- VolumeLevelFeedback
+<!-- END Int Feedbacks -->
+<!-- START String Feedbacks -->
+
+<!-- END String Feedbacks -->
